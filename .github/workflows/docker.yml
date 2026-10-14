@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Deploy
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -40,3 +40,22 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
+
+      - name: Deploy to Azure VM
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            docker pull ghcr.io/${{ github.repository }}:latest
+
+            docker rm -f ict-archive || true
+
+            docker run -d \
+              --name ict-archive \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              ghcr.io/${{ github.repository }}:latest
+
+            docker image prune -f
