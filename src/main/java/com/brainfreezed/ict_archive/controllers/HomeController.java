@@ -2,7 +2,6 @@ package com.brainfreezed.ict_archive.controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestController
 public class HomeController {
@@ -13,6 +12,6 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-         return "Welcome to the ICT Archive!";
+        return "Welcome to the ICT Archive! 🚀 CI/CD is working!";
     }
 }
