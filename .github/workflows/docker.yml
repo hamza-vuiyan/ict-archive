@@ -50,7 +50,6 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           timeout: 2m
           command_timeout: 15m
-          script_stop: true
           script: |
             set -Eeuo pipefail
 
@@ -106,7 +105,7 @@ jobs:
 
             for attempt in $(seq 1 30); do
               HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
-                http://127.0.0.1:8080/ || true)
+                http://127.0.0.1:8080/health || true)
 
               if [ "$HTTP_CODE" = "200" ]; then
                 HEALTHY=1
