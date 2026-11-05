@@ -70,23 +70,21 @@ public class HomeController {
     @GetMapping("/verify")
     public String verifyEmail(
             @RequestParam("token") String token,
-            RedirectAttributes redirectAttributes) {
+            Model model) {
 
         boolean verified = verificationService.verifyToken(token);
 
         if (verified) {
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Your email has been verified successfully! You can now log in."
-            );
+            model.addAttribute("success", true);
+            model.addAttribute("message",
+                    "Your email has been verified successfully! You can now log in.");
         } else {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    "Invalid, expired, or already-used verification link."
-            );
+            model.addAttribute("success", false);
+            model.addAttribute("message",
+                    "Invalid, expired, or already-used verification link.");
         }
 
-        return "redirect:/login";
+        return "verification-result";
     }
 
 
