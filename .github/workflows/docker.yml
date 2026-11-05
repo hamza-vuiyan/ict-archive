@@ -48,21 +48,85 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
+          timeout: 2m
+          command_timeout: 15m
+          script_stop: true
           script: |
-            test -s /opt/ict-archive/.env || {
-              echo "Database environment file missing!"
+            set -Eeuo pipefail
+
+            IMAGE="ghcr.io/${{ github.repository }}:latest"
+
+            echo "Checking environment file..."
+            test -s /opt/ict-archive/.env
+
+            echo "Pulling latest Docker image..."
+            docker pull "$IMAGE"
+
+            # Protect any existing backup container.
+            if docker container inspect ict-archive-previous >/dev/null 2>&1; then
+              echo "Previous backup container exists. Aborting."
               exit 1
+            fi
+
+            # Preserve the currently running container.
+            if docker container inspect ict-archive >/dev/null 2>&1; then
+              echo "Preserving current container..."
+              docker stop ict-archive
+              docker rename ict-archive ict-archive-previous
+            fi
+
+            # Restore the previous container if deployment fails.
+            rollback() {
+              status=$?
+              if [ "$status" -ne 0 ]; then
+                echo "Deployment failed. Rolling back..."
+
+                docker rm -f ict-archive >/dev/null 2>&1 || true
+
+                if docker container inspect ict-archive-previous >/dev/null 2>&1; then
+                  docker rename ict-archive-previous ict-archive
+                  docker start ict-archive
+                fi
+              fi
             }
 
-            docker pull ghcr.io/${{ github.repository }}:latest
+            trap rollback EXIT
 
-            docker rm -f ict-archive || true
-
+            echo "Starting new container..."
             docker run -d \
               --name ict-archive \
               --restart unless-stopped \
               --env-file /opt/ict-archive/.env \
               -p 8080:8080 \
-              ghcr.io/${{ github.repository }}:latest
+              "$IMAGE"
 
-            docker image prune -f
+            echo "Waiting for application health..."
+
+            HEALTHY=0
+
+            for attempt in $(seq 1 30); do
+              HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+                http://127.0.0.1:8080/ || true)
+
+              if [ "$HTTP_CODE" = "200" ]; then
+                HEALTHY=1
+                break
+              fi
+
+              sleep 2
+            done
+
+            if [ "$HEALTHY" -ne 1 ]; then
+              echo "Application failed health check."
+              docker logs --tail 80 ict-archive || true
+              exit 1
+            fi
+
+            echo "Application is healthy!"
+
+            # Remove old container only after successful verification.
+            docker rm -f ict-archive-previous || true
+
+            trap - EXIT
+
+            echo "Deployment completed successfully!"
