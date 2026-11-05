@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Email Verification</title>
+</head>
+<body>
+
+<h2 th:text="${success} ? 'Email Verified!' : 'Verification Failed'"></h2>
+
+<p th:text="${message}"></p>
+
+<a th:if="${success}" href="/login">Go to Login</a>
+<a th:unless="${success}" href="/register">Back to Registration</a>
+
+</body>
+</html>
