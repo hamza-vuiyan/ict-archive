@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | ICT Archive</title>
+</head>
+<body>
+
+<h2>Create an Account</h2>
+
+<form th:action="@{/register}" th:object="${registrationRequest}" method="post">
+
+    <div>
+        <label for="username">Username</label>
+        <input type="text" id="username" th:field="*{username}" required>
+        <small th:errors="*{username}"></small>
+    </div>
+
+    <div>
+        <label for="email">Email</label>
+        <input type="email" id="email" th:field="*{email}" required>
+        <small th:errors="*{email}"></small>
+    </div>
+
+    <div>
+        <label for="password">Password</label>
+        <input type="password" id="password" th:field="*{password}" required>
+        <small th:errors="*{password}"></small>
+    </div>
+
+    <div>
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword"
+               th:field="*{confirmPassword}" required>
+        <small th:errors="*{confirmPassword}"></small>
+    </div>
+
+    <button type="submit">Register</button>
+
+    <p th:if="${registrationError}"
+       th:text="${registrationError}">
+    </p>
+
+    <p th:if="${successMessage}"
+       th:text="${successMessage}">
+    </p>
+
+</form>
+
+<p>Already have an account? <a th:href="@{/login}">Login</a></p>
+
+</body>
+</html>
