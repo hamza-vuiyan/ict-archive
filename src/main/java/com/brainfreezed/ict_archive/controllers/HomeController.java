@@ -1,34 +1,39 @@
 package com.brainfreezed.ict_archive.controllers;
 
 import com.brainfreezed.ict_archive.services.RegistrationService;
+import com.brainfreezed.ict_archive.services.VerificationService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 import com.brainfreezed.ict_archive.dto.RegistrationRequest;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
 
 @Controller
 public class HomeController {
 
     private final RegistrationService registrationService;
+    private final VerificationService verificationService;
 
-    public HomeController(RegistrationService registrationService) {
+    public HomeController(
+            RegistrationService registrationService,
+            VerificationService verificationService) {
+
         this.registrationService = registrationService;
+        this.verificationService = verificationService;
+    }
+
+    @GetMapping("/")
+    @ResponseBody
+    public String home() {
+        return "Welcome to the ICT Archive!";
     }
 
     @GetMapping("/health") // New endpoint for health check
+    @ResponseBody
     public String health(){
         return "OK";
-    }
-
-    @GetMapping("/")  // New endpoint for the home page
-    public String home() {
-        return "Welcome to the ICT Archive! 🚀 CI/CD is working!";
     }
 
     @GetMapping("/register") // New endpoint for registration page
@@ -60,6 +65,28 @@ public class HomeController {
             model.addAttribute("registrationError", e.getMessage());
             return "register";
         }
+    }
+
+    @GetMapping("/verify")
+    public String verifyEmail(
+            @RequestParam("token") String token,
+            RedirectAttributes redirectAttributes) {
+
+        boolean verified = verificationService.verifyToken(token);
+
+        if (verified) {
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Your email has been verified successfully! You can now log in."
+            );
+        } else {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Invalid, expired, or already-used verification link."
+            );
+        }
+
+        return "redirect:/login";
     }
 
 

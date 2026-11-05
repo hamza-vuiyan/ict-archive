@@ -4,26 +4,28 @@ import com.brainfreezed.ict_archive.dto.RegistrationRequest;
 import com.brainfreezed.ict_archive.entities.User;
 import com.brainfreezed.ict_archive.enums.UserRole;
 import com.brainfreezed.ict_archive.repositories.UserRepository;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RegistrationService {
-
+    private final VerificationService verificationService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     public RegistrationService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            VerificationService verificationService) {
+
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.verificationService = verificationService;
     }
 
     @Transactional
-    public void registerUser(RegistrationRequest request) {
+    public User registerUser(RegistrationRequest request) {
 
         // Check password confirmation
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -51,6 +53,10 @@ public class RegistrationService {
         user.setRole(UserRole.STUDENT);
         user.setEnabled(false);
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        verificationService.createAndSendVerificationToken(savedUser);
+
+        return savedUser;
     }
 }

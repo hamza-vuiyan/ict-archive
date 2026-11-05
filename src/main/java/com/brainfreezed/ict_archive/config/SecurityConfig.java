@@ -15,7 +15,10 @@ public class SecurityConfig {
 
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/register", "/css/**", "/js/**").permitAll()
+                        .requestMatchers(
+                                "/", "/health", "/register", "/verify",
+                                "/css/**", "/js/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(Customizer.withDefaults());
