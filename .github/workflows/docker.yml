@@ -91,11 +91,16 @@ jobs:
 
             trap rollback EXIT
 
+            echo "Preparing persistent storage..."
+            sudo mkdir -p /opt/ict-archive/uploads
+
             echo "Starting new container..."
             docker run -d \
               --name ict-archive \
               --restart unless-stopped \
               --env-file /opt/ict-archive/.env \
+              -e STORAGE_LOCATION=/app/uploads \
+              -v /opt/ict-archive/uploads:/app/uploads \
               -p 8080:8080 \
               "$IMAGE"
 
