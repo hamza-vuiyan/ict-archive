@@ -87,5 +87,9 @@ public class HomeController {
         return "verification-result";
     }
 
+    @GetMapping("/login") //login page endpoint
+    public String showLoginPage() {
+        return "login";
+    }
 
 }
