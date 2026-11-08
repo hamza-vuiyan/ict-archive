@@ -58,6 +58,10 @@ jobs:
             echo "Checking environment file..."
             test -s /opt/ict-archive/.env
 
+            echo "Checking persistent storage..."
+            test -d /opt/ict-archive/uploads
+            test -w /opt/ict-archive/uploads
+
             echo "Pulling latest Docker image..."
             docker pull "$IMAGE"
 
@@ -76,8 +80,9 @@ jobs:
 
             # Restore the previous container if deployment fails.
             rollback() {
-              status=$?
-              if [ "$status" -ne 0 ]; then
+              deploy_status=$?
+
+              if [ "$deploy_status" -ne 0 ]; then
                 echo "Deployment failed. Rolling back..."
 
                 docker rm -f ict-archive >/dev/null 2>&1 || true
@@ -90,9 +95,6 @@ jobs:
             }
 
             trap rollback EXIT
-
-            echo "Preparing persistent storage..."
-            sudo mkdir -p /opt/ict-archive/uploads
 
             echo "Starting new container..."
             docker run -d \
