@@ -3,65 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <title>Upload Document - ICT Archive</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 550px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .valid {
+            color: green;
+        }
+
+        .invalid {
+            color: #c0392b;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: #c0392b;
+        }
+
+        button {
+            padding: 11px 22px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+    </style>
 </head>
+
 <body>
 
 <h1>Upload Document</h1>
 
 <p th:if="${successMessage}"
    th:text="${successMessage}"
-   style="color: green;"></p>
+   class="success"></p>
 
 <p th:if="${errorMessage}"
    th:text="${errorMessage}"
-   style="color: red;"></p>
+   class="error"></p>
 
-<form th:action="@{/documents/upload}"
+<form id="uploadForm"
+      th:action="@{/documents/upload}"
       method="post"
       enctype="multipart/form-data">
 
-    <div>
-        <label>Document Title</label>
-        <input type="text" name="title" required>
+    <div class="form-group">
+        <label for="courseCode">Course Code</label>
+
+        <input type="text"
+               id="courseCode"
+               name="courseCode"
+               placeholder="ICT4104"
+               maxlength="7"
+               minlength="7"
+               pattern="ICT[0-9]{4}"
+               title="Enter a course code like ICT4104"
+               autocomplete="off"
+               required>
+
+        <p id="courseCodeFeedback" class="hint">
+            Format: ICT followed by exactly four digits.
+        </p>
     </div>
 
-    <div>
-        <label>Description</label>
-        <textarea name="description"></textarea>
+    <div class="form-group">
+        <label for="courseName">Course Name</label>
+        <input type="text"
+               id="courseName"
+               name="courseName"
+               placeholder="Digital Image Processing"
+               required>
     </div>
 
-    <div>
-        <label>Course Code</label>
-        <input type="text" name="courseCode"
-               placeholder="ICT4103" required>
+    <div class="form-group">
+        <label for="shortName">Short Name</label>
+        <input type="text"
+               id="shortName"
+               name="shortName"
+               placeholder="DIP"
+               required>
     </div>
 
-    <div>
-        <label>Course Name</label>
-        <input type="text" name="courseName"
-               placeholder="Digital Image Processing" required>
+    <div class="form-group">
+        <label for="academicYear">Academic Year</label>
+        <input type="number"
+               id="academicYear"
+               name="academicYear"
+               placeholder="2025"
+               min="2000"
+               required>
     </div>
 
-    <div>
-        <label>Short Name</label>
-        <input type="text" name="shortName"
-               placeholder="DIP" required>
+    <div class="form-group">
+        <label for="category">Category</label>
+
+        <select id="category" name="category" required>
+            <option value="">Select a category</option>
+            <option value="BOOK">Book</option>
+            <option value="NOTE">Note</option>
+            <option value="QUESTION">Question</option>
+            <option value="ASSIGNMENT">Assignment</option>
+            <option value="LAB">Lab</option>
+            <option value="SLIDES">Slides</option>
+            <option value="OTHER">Other</option>
+        </select>
     </div>
 
-    <div>
-        <label>Academic Year</label>
-        <input type="number" name="academicYear"
-               placeholder="2025" min="2000" required>
+    <div class="form-group">
+        <label for="file">Select File</label>
+
+        <input type="file"
+               id="file"
+               name="file"
+               required>
+
+        <p class="hint">Maximum file size: 20 MB.</p>
     </div>
 
-    <div>
-        <label>Select File</label>
-        <input type="file" name="file" required>
-    </div>
-
-    <button type="submit">Upload</button>
+    <button type="submit" id="uploadButton" disabled>
+        Upload
+    </button>
 
 </form>
+
+<script>
+    const form = document.getElementById("uploadForm");
+    const courseCode = document.getElementById("courseCode");
+    const feedback = document.getElementById("courseCodeFeedback");
+    const uploadButton = document.getElementById("uploadButton");
+
+    function validateCourseCode() {
+        courseCode.value = courseCode.value.toUpperCase();
+
+        const valid = /^ICT\d{4}$/.test(courseCode.value);
+
+        if (courseCode.value.length === 0) {
+            feedback.textContent =
+                "Format: ICT followed by exactly four digits.";
+            feedback.className = "hint";
+        } else if (valid) {
+            feedback.textContent = "Valid course code.";
+            feedback.className = "hint valid";
+        } else {
+            feedback.textContent =
+                "Invalid! Example: ICT4104";
+            feedback.className = "hint invalid";
+        }
+
+        uploadButton.disabled = !valid;
+        courseCode.setCustomValidity(
+            valid ? "" : "Course code must follow ICTXXXX format."
+        );
+
+        return valid;
+    }
+
+    courseCode.addEventListener("input", validateCourseCode);
+
+    form.addEventListener("submit", function (event) {
+        if (!validateCourseCode() || !form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+        }
+    });
+</script>
 
 </body>
 </html>
