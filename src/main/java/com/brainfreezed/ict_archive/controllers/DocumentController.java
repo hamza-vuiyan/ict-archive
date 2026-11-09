@@ -2,8 +2,9 @@ package com.brainfreezed.ict_archive.controllers;
 
 import com.brainfreezed.ict_archive.repositories.UserRepository;
 import com.brainfreezed.ict_archive.services.DocumentService;
-import org.springframework.stereotype.Controller;
 import com.brainfreezed.ict_archive.entities.User;
+
+import org.springframework.stereotype.Controller;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -12,12 +13,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class DocumentController {
+
     private final UserRepository userRepository;
     private final DocumentService documentService;
 
     public DocumentController(
             DocumentService documentService,
             UserRepository userRepository) {
+
         this.documentService = documentService;
         this.userRepository = userRepository;
     }
@@ -25,13 +28,11 @@ public class DocumentController {
     @PostMapping("/documents/upload")
     public String uploadDocument(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("title") String title,
-            @RequestParam(value = "description", required = false) String description,
-
             @RequestParam("courseCode") String courseCode,
             @RequestParam("courseName") String courseName,
             @RequestParam("shortName") String shortName,
             @RequestParam("academicYear") Integer academicYear,
+            @RequestParam("category") String category,
 
             @AuthenticationPrincipal UserDetails userDetails,
             RedirectAttributes redirectAttributes) {
@@ -41,9 +42,13 @@ public class DocumentController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             documentService.upload(
-                    file, title, description,
-                    courseCode, courseName, shortName,
-                    academicYear, uploader
+                    file,
+                    courseCode,
+                    courseName,
+                    shortName,
+                    academicYear,
+                    category,
+                    uploader
             );
 
             redirectAttributes.addFlashAttribute(

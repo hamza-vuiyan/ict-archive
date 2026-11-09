@@ -11,12 +11,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
+
 @Service
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final CourseRepository courseRepository;
     private final FileStorageService fileStorageService;
+
+    private static final Set<String> ALLOWED_CATEGORIES = Set.of(
+            "BOOK",
+            "NOTE",
+            "QUESTION",
+            "ASSIGNMENT",
+            "LAB",
+            "SLIDES",
+            "OTHER"
+    );
 
     public DocumentService(
             DocumentRepository documentRepository,
@@ -31,39 +43,91 @@ public class DocumentService {
     @Transactional
     public Document upload(
             MultipartFile file,
-            String title,
-            String description,
             String courseCode,
             String courseName,
             String shortName,
             Integer academicYear,
+            String category,
             User uploader) {
 
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File cannot be empty");
+            throw new IllegalArgumentException("Please select a file.");
         }
 
-        Course course = courseRepository.findByCourseCode(courseCode)
+        // Validate course code
+        String normalizedCourseCode = courseCode == null
+                ? ""
+                : courseCode.trim().toUpperCase();
+
+        if (!normalizedCourseCode.matches("^ICT\\d{4}$")) {
+            throw new IllegalArgumentException(
+                    "Course code must follow ICTXXXX format (e.g. ICT4104)"
+            );
+        }
+
+        // Validate category
+        String normalizedCategory = category == null
+                ? ""
+                : category.trim().toUpperCase();
+
+        if (!ALLOWED_CATEGORIES.contains(normalizedCategory)) {
+            throw new IllegalArgumentException("Please select a valid category.");
+        }
+
+        if (courseName == null || courseName.isBlank()
+                || shortName == null || shortName.isBlank()) {
+            throw new IllegalArgumentException("Course name and short name are required.");
+        }
+
+        if (academicYear == null || academicYear < 2000) {
+            throw new IllegalArgumentException("Please enter a valid academic year.");
+        }
+
+        // Find existing course or create a new one
+        Course course = courseRepository.findByCourseCode(normalizedCourseCode)
                 .orElseGet(() -> courseRepository.save(
-                        new Course(courseCode, courseName, shortName)
+                        new Course(
+                                normalizedCourseCode,
+                                courseName.trim(),
+                                shortName.trim()
+                        )
                 ));
 
-        String folderName = course.getCourseCode() + "-"
-                + course.getCourseName().trim().replaceAll("[^a-zA-Z0-9]+", "_");
+        // Map categories to storage directory names
+        String categoryFolder = switch (normalizedCategory) {
+            case "BOOK" -> "books";
+            case "NOTE" -> "notes";
+            case "QUESTION" -> "questions";
+            case "ASSIGNMENT" -> "assignments";
+            case "LAB" -> "labs";
+            case "SLIDES" -> "slides";
+            case "OTHER" -> "other";
+            default -> throw new IllegalArgumentException("Invalid category");
+        };
 
-        String filename = academicYear + "_" + course.getShortName() + "."
-                + getExtension(file.getOriginalFilename());
+        // Build storage path: category/courseCode/filename
+        String originalFilename = file.getOriginalFilename();
+        String extension = getExtension(originalFilename);
 
-        String requestedPath = folderName + "/" + filename;
+        String filename = academicYear + "_" + course.getShortName() + "." + extension;
+
+        String requestedPath = categoryFolder + "/"
+                + course.getCourseCode() + "/"
+                + filename;
 
         String storageKey = fileStorageService.store(file, requestedPath);
 
         try {
             Document document = new Document();
 
-            document.setTitle(title);
-            document.setDescription(description);
-            document.setOriginalFilename(file.getOriginalFilename());
+            // Generate title from original filename, without extension
+            String generatedTitle = originalFilename == null
+                    ? "Untitled document"
+                    : originalFilename.replaceFirst("\\.[^.]+$", "");
+
+            document.setTitle(generatedTitle);
+            document.setCategory(normalizedCategory);
+            document.setOriginalFilename(originalFilename);
             document.setStorageKey(storageKey);
             document.setStorageProvider("LOCAL");
             document.setContentType(file.getContentType());
@@ -86,6 +150,7 @@ public class DocumentService {
             return "file";
         }
 
-        return filename.substring(filename.lastIndexOf(".") + 1);
+        return filename.substring(filename.lastIndexOf(".") + 1)
+                .toLowerCase();
     }
 }
